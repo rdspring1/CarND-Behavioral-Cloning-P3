@@ -2,6 +2,7 @@ import csv
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import re
 
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Dropout, Lambda, Cropping2D
@@ -12,17 +13,28 @@ import sklearn
 from sklearn.model_selection import train_test_split
 
 samples = []
-with open("../data/course1/driving_log.csv") as csvfile:
+with open("../data/driving_log.csv") as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         samples.append(line)
 
-train_samples, validation_samples = train_test_split(samples, test_size=0.2)
+train_samples, validation_samples = train_test_split(samples, test_size=0.1)
 
-# TODO Add Multiple Cameras
-# TODO Recovery Laps
+correction = 0.8
 
-def generator(samples, batch_size=16):
+def process_image(images, angles, path, angle, train, correction=0.0):
+    filename = re.split(r'\\|/',path)[-1]
+    name = "../data/IMG/" + filename
+    image = cv2.imread(name)
+    image_flipped = np.fliplr(image)
+    angle_flipped = -angle
+    images.append(image)
+    angles.append(angle)
+    if train:
+        images.append(image_flipped)
+        angles.append(angle_flipped)
+
+def generator(samples, train, batch_size):
     num_samples = len(samples)
     while True:
         sklearn.utils.shuffle(samples)
@@ -32,16 +44,11 @@ def generator(samples, batch_size=16):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                filename = batch_sample[0].split("\\")[-1]
-                name = "../data/course1/IMG/" + filename
-                center_image = cv2.imread(name)
-                center_angle = float(batch_sample[3])
-                image_flipped = np.fliplr(center_image)
-                angle_flipped = -center_angle
-                images.append(center_image)
-                images.append(image_flipped)
-                angles.append(center_angle)
-                angles.append(angle_flipped)
+                angle = float(batch_sample[3])
+                process_image(images, angles, batch_sample[0], angle, train)
+                if train:
+                    process_image(images, angles, batch_sample[1], angle, train, correction)
+                    process_image(images, angles, batch_sample[2], angle, train, -correction)
 
             # trim image to only see section with road
             X_train = np.array(images)
@@ -49,8 +56,8 @@ def generator(samples, batch_size=16):
             yield sklearn.utils.shuffle(X_train, y_train) 
 
 # compile and train the model using the generator function
-train_generator = generator(train_samples, batch_size=32)
-validation_generator = generator(validation_samples, batch_size=32)
+train_generator = generator(train_samples, True, batch_size=16)
+validation_generator = generator(validation_samples, False, batch_size=32)
 
 row, col, ch = 160, 320, 3
 cropping_height = (70, 25)
@@ -64,11 +71,11 @@ model.add(Convolution2D(36, (5, 5), strides=(2,2), activation='relu'))
 model.add(Convolution2D(48, (5, 5), activation='relu'))
 model.add(Convolution2D(64, (5, 5), activation='relu'))
 model.add(Flatten())
-model.add(Dense(100))
+model.add(Dense(100, activation='relu'))
 model.add(Dropout(0.5))
-model.add(Dense(50))
+model.add(Dense(50, activation='relu'))
 model.add(Dropout(0.5))
-model.add(Dense(10))
+model.add(Dense(10, activation='relu'))
 model.add(Dense(1))
 
 model.compile('adam', 'mse')
@@ -76,7 +83,7 @@ history_object = model.fit_generator(train_generator,
         steps_per_epoch = len(train_samples),
         validation_data = validation_generator,
         validation_steps = len(validation_samples), 
-        epochs=10, verbose=1)
+        epochs=3, verbose=1)
 
 model.save('model.h5')
 
