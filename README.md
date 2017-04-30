@@ -91,9 +91,12 @@ I noticed the car had trouble navigating the sharp turns in the track.
 I then recorded the vehicle recovering from the left side and right sides of the road back to center in the sharp turns of the track.
 I also used the left and right camera images by applying a correction value to steering angle. 
 
-![alt text][image2]
-![alt text][image3]
-![alt text][image4]
+
+Left: ![alt text][image2]
+
+Center: ![alt text][image3]
+
+Right: ![alt text][image4]
 
 Then, I repeated this process on track two in order to get more data points.
 
@@ -111,5 +114,4 @@ I used this training data for training the model. The validation set helped dete
 
 ### Video Result
 
-Here is my result for track1.
-![alt text][video1]
+Here is [my video](./track1.mp4) for track 1.
