@@ -12,19 +12,25 @@ from keras.layers.pooling import MaxPooling2D
 import sklearn
 from sklearn.model_selection import train_test_split
 
+# Read lines from CSV file
 samples = []
 with open("../data/driving_log.csv") as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         samples.append(line)
 
+# Split into train and test datasets
 train_samples, validation_samples = train_test_split(samples, test_size=0.1)
+
+# Training / Validation parameters
 batch_size = 32
 spe = int(6*len(train_samples) / batch_size)
 vs = int(len(validation_samples) / batch_size)
 
+# Left/Right steering angle correction
 correction = 1.0
 
+# Read Image and Steering Angle
 def process_image(images, angles, path, angle, train, correction=0.0):
     filename = re.split(r'\\|/',path)[-1]
     name = "../data/IMG/" + filename
@@ -50,6 +56,7 @@ def generator(samples, train, batch_size):
                 angle = float(batch_sample[3])
                 process_image(images, angles, batch_sample[0], angle, train)
                 if train:
+					# Add left and right corrected images during traing
                     process_image(images, angles, batch_sample[1], angle, train, correction)
                     process_image(images, angles, batch_sample[2], angle, train, -correction)
 
@@ -57,6 +64,7 @@ def generator(samples, train, batch_size):
                     X_train = np.array(images)
                     y_train = np.array(angles)
                     yield sklearn.utils.shuffle(X_train, y_train)
+					# delete previous batch data
                     del images [:]
                     del angles [:]
 
