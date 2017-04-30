@@ -15,12 +15,13 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/center.png "Center"
-[image2]: ./examples/left.png "Left"
-[image3]: ./examples/center1.png "Center Recovery"
-[image4]: ./examples/right.png "Recovery Image"
-[image5]: ./examples/original.png "Normal Image"
-[image6]: ./examples/flipped.png "Flipped Image"
+[image1]: ./examples/center.jpg "Center"
+[image2]: ./examples/left.jpg "Left"
+[image3]: ./examples/center1.jpg "Center Recovery"
+[image4]: ./examples/right.jpg "Recovery Image"
+[image5]: ./examples/original.jpg "Normal Image"
+[image6]: ./examples/flipped.jpg "Flipped Image"
+[video1]: ./track1.mp4 "Track 1 Video"
 
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -110,4 +111,5 @@ I used this training data for training the model. The validation set helped dete
 
 ### Video Result
 
-Here is [my result] for track1.(./track1.mp4)
+Here is my result for track1.
+![alt text][video1]
