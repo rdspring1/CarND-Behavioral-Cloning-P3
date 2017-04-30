@@ -13,56 +13,42 @@ import sklearn
 from sklearn.model_selection import train_test_split
 
 samples = []
-with open("../data/driving_log.csv") as csvfile:
+with open("./mydata/driving_log.csv") as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         samples.append(line)
 
 train_samples, validation_samples = train_test_split(samples, test_size=0.1)
-batch_size = 32
-spe = int(6*len(train_samples) / batch_size)
-vs = int(len(validation_samples) / batch_size)
-
 correction = 1.0
 
 def process_image(images, angles, path, angle, train, correction=0.0):
     filename = re.split(r'\\|/',path)[-1]
-    name = "../data/IMG/" + filename
+    name = "./mydata/IMG/" + filename
     image = cv2.imread(name)
+    image_flipped = np.fliplr(image)
+    angle_flipped = -angle
     images.append(image)
     angles.append(angle)
     if train:
-        image_flipped = np.fliplr(image)
-        angle_flipped = -angle
         images.append(image_flipped)
         angles.append(angle_flipped)
 
-def generator(samples, train, batch_size):
-    num_samples = len(samples)
-    while True:
-        sklearn.utils.shuffle(samples)
-        for offset in range(0, num_samples, batch_size):
-            batch_samples = samples[offset:offset+batch_size]
-
-            images = []
-            angles = []
-            for batch_sample in batch_samples:
-                angle = float(batch_sample[3])
-                process_image(images, angles, batch_sample[0], angle, train)
-                if train:
-                    process_image(images, angles, batch_sample[1], angle, train, correction)
-                    process_image(images, angles, batch_sample[2], angle, train, -correction)
-
-                if len(images) >= batch_size:
-                    X_train = np.array(images)
-                    y_train = np.array(angles)
-                    yield sklearn.utils.shuffle(X_train, y_train)
-                    del images [:]
-                    del angles [:]
+def process_samples(samples, train):
+    images = []
+    angles = []
+    for sample in samples:
+        angle = float(sample[3])
+        process_image(images, angles, sample[0], angle, train)
+        if train:
+            process_image(images, angles, sample[1], angle, train, correction)
+            process_image(images, angles, sample[2], angle, train, -correction)
+    X = np.array(images)
+    y = np.array(angles)
+    return X, y
 
 # compile and train the model using the generator function
-train_generator = generator(train_samples, True, batch_size)
-validation_generator = generator(validation_samples, False, batch_size)
+X, y = process_samples(train_samples, True)
+valid_data = process_samples(validation_samples, False)
 
 row, col, ch = 160, 320, 3
 cropping_height = (70, 25)
@@ -70,7 +56,6 @@ cropping_width = (0, 0)
 
 model = Sequential()
 model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(row, col, ch)))
-# trim image to only see section with road
 model.add(Cropping2D(cropping=(cropping_height, cropping_width)))
 model.add(Convolution2D(24, (5, 5), strides=(2,2), activation='relu'))
 model.add(Convolution2D(36, (5, 5), strides=(2,2), activation='relu'))
@@ -85,11 +70,7 @@ model.add(Dense(10, activation='relu'))
 model.add(Dense(1))
 
 model.compile('adam', 'mse')
-history_object = model.fit_generator(train_generator,
-        steps_per_epoch = spe,
-        validation_data = validation_generator,
-        validation_steps = vs,
-        epochs=5, verbose=1)
+history_object = model.fit(X, y, batch_size=128, epochs=7, verbose=1, validation_data=valid_data, shuffle=True)
 
 model.save('model.h5')
 
